@@ -1,5 +1,23 @@
 const objectAssignDeep = require("object-assign-deep"),
-    yaml = require("yaml");
+    yaml = require("yaml"),
+     fs = require('fs');
+
+exports.getJSON = function (filePath) {
+        try {
+            const fullFilePath = process.cwd() + filePath;
+            try {
+                fs.accessSync(fullFilePath, fs.constants.F_OK);
+                const fileData = fs.readFileSync(fullFilePath, "utf-8");
+                const parsedData = JSON.parse(fileData);
+                return parsedData
+              } catch (error) {
+                console.error(`Error: ${filePath} does not exist or could not be read`);
+              }
+        } catch (e) {
+            // this.log(`Error getting JSON file of the ${filePath} file: ${e}`);
+            throw e;
+        }
+    };
 
 // overide can be an object or a function that receives the current object
 exports.writeJSON = async function (filePath, override) {
@@ -15,7 +33,7 @@ exports.writeJSON = async function (filePath, override) {
                 ? override(oldContent)
                 : objectAssignDeep.withOptions(oldContent, [override], { arrayBehaviour: "merge" });
 
-        this.fs.writeJSON(fullFilePath, newContent);
+        this.fs.writeFile(fullFilePath, JSON.stringify(newContent));
         if (!this.options.isSubgeneratorCall && this.config.get("setupCompleted")) {
             this.log(`Updated file: ${filePath}`);
         }
