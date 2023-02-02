@@ -1,8 +1,8 @@
 {
-  "name": "generator-enable-excelupload",
-  "version": "0.3.1",
+  "name": "generator-ui5-excelupload",
+  "version": "0.1.1",
   "description": "Generator for a Custom Control Excel Upload",
-  "main": "generators/enableui5ccexup/index.js",
+  "main": "generators/app/index.js",
   "scripts": {
     "test": "mocha",
     "workaround": "find . -name '.DS_Store' -delete",
