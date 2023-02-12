@@ -9,31 +9,41 @@ module.exports = class extends Generator {
 
     async prompting() {
         const data = this.config.getAll();
-        const manifesJson = fileaccess.getJSON("/webapp/manifest.json")
-        
-        
+        const modules = this.config.get("uimodules") || [];
+        const manifesJson = fileaccess.getJSON("/webapp/manifest.json");
 
-        const questionTemplate = await this.prompt(
-            {
-                type: 'list',
-                name: 'templateType',
-                message: 'On which page would you like to add Excel Upload?',
-                choices: [
-                    { name: 'Object Page', value: 'sap.fe.templates.ObjectPage' },
-                    { name: 'List Report', value: 'sap.fe.templates.ListReport' }
-                  ]
-              }
-        );
-        const entitySets = util.getUniqueEntitySetValues(manifesJson,questionTemplate.templateType)
+        const deploymentQuestion = await this.prompt({
+            type: "list",
+            name: "deploymentType",
+            message: "What kind of Deployment to you use?",
+            choices: [
+                { name: "Central Deployment", value: "centralDeployment" },
+                { name: "In-App Deployment", value: "inAppDeployment" }
+            ]
+        });
+        const questionTemplate = await this.prompt({
+            type: "list",
+            name: "templateType",
+            message: "On which page would you like to add Excel Upload?",
+            choices: [
+                { name: "Object Page", value: "sap.fe.templates.ObjectPage" },
+                { name: "List Report", value: "sap.fe.templates.ListReport" }
+            ]
+        });
+        const entitySets = util.getUniqueEntitySetValues(manifesJson, questionTemplate.templateType);
         const questionEntitySet = await this.prompt([
             {
-                type: 'list',
-                name: 'entitySet',
-                message: 'Which entity Set?',
+                type: "list",
+                name: "entitySet",
+                message: "Which entity Set?",
                 choices: entitySets
-              }
+            }
         ]);
-        const manifestTargets = util.findEntitySetValue(manifesJson, questionEntitySet.entitySet,questionTemplate.templateType)
+        const manifestTargets = util.findEntitySetValue(
+            manifesJson,
+            questionEntitySet.entitySet,
+            questionTemplate.templateType
+        );
 
         var aPrompt = [
             {
@@ -48,17 +58,21 @@ module.exports = class extends Generator {
             this.options.oneTimeConfig = this.config.getAll();
             this.options.oneTimeConfig.buttonText = answers.buttonText;
             this.options.oneTimeConfig.target = manifestTargets.id;
+            this.options.oneTimeConfig.deploymentType = deploymentQuestion.deploymentType;
         });
     }
 
     async writing() {
+        const npmLatestVersionPromise = util.getLatestVersion()
         const oConfig = this.config.getAll();
         const buttonText = this.options.oneTimeConfig.buttonText;
-        const target= this.options.oneTimeConfig.target;
+        const target = this.options.oneTimeConfig.target;
         const sComponentName = this.options.oneTimeConfig.componentName;
         const sComponentData = this.options.oneTimeConfig.componentData || {};
         const sLazy = this.options.oneTimeConfig.lazy;
         const sModuleName = this.options.oneTimeConfig.modulename;
+        const deploymentType = this.options.oneTimeConfig.deploymentType;
+        
 
         this.sourceRoot(path.join(__dirname, "templates"));
         glob.sync("**", {
@@ -71,44 +85,22 @@ module.exports = class extends Generator {
             this.fs.copyTpl(sOrigin, sTarget, oConfig);
         });
 
-        await fileaccess.manipulateJSON.call(this, "/package.json", {
-            "dependencies": {
-                "ui5-cc-excelupload": "0.6.0"
-              }});
-
-        await fileaccess.manipulateJSON.call(this, "/package.json", {
-            "ui5": {
-                "dependencies": [
-                  "ui5-cc-excelupload"
-                ]
-              }
-        });
-
         await fileaccess.manipulateJSON.call(this, "/webapp/manifest.json", {
             "sap.ui5": {
-                    resourceRoots: {
-                        "cc.excelUpload":"./thirdparty/customControl/excelUpload/v0/6/0"
-                        }
-                    }
-        });
-
-        await fileaccess.manipulateJSON.call(this, "/webapp/manifest.json", {
-                "sap.ui5": {
-                    "routing": {
-                        "targets": {
-                            [target]: {
-                                "options": {
-                                    "settings": {
-                                        "content": {
-                                            "header": {
-                                                "actions": {
-                                                    "excelUpload": {
-                                                        "id" : "excelUploadButton",
-                                                        "text" : buttonText,
-                                                        "enabled": "{ui>/isEditable}",
-                                                        "press" : "ui5.cc.v4.samplev4excelupload.ext.ObjectPageExtController.openExcelUploadDialog",
-                                                        "requiresSelection": false
-                                                    }
+                routing: {
+                    targets: {
+                        [target]: {
+                            options: {
+                                settings: {
+                                    content: {
+                                        header: {
+                                            actions: {
+                                                excelUpload: {
+                                                    id: "excelUploadButton",
+                                                    text: buttonText,
+                                                    enabled: "{ui>/isEditable}",
+                                                    press: "ui5.cc.v4.samplev4excelupload.ext.ObjectPageExtController.openExcelUploadDialog",
+                                                    requiresSelection: false
                                                 }
                                             }
                                         }
@@ -118,12 +110,53 @@ module.exports = class extends Generator {
                         }
                     }
                 }
+            }
         });
+        const npmLatestVersion = await npmLatestVersionPromise
+        const npmLatestVersionSlash = npmLatestVersion.replaceAll(".", "/")
+        const namespace = `cc.excelUpload.v${npmLatestVersion}`;
+
+        
+        if (deploymentType === "inAppDeployment") {
+            await fileaccess.manipulateJSON.call(this, "/package.json", {
+                dependencies: {
+                    "ui5-cc-excelupload": npmLatestVersion
+                }
+            });
+
+            // TODO: is added twice to array if executed twice
+            // TODO: check for UI5 CLI if neccesary
+            await fileaccess.manipulateJSON.call(this, "/package.json", {
+                ui5: {
+                    dependencies: ["ui5-cc-excelupload"]
+                }
+            });
+
+            await fileaccess.manipulateJSON.call(this, "/webapp/manifest.json", {
+                "sap.ui5": {
+                    resourceRoots: {
+                        namespace: "./thirdparty/customControl/excelUpload/v" + npmLatestVersionSlash
+                    }
+                }
+            });
+        }
+        await fileaccess.manipulateJSON.call(this, "/webapp/manifest.json", {
+            "sap.ui5": {
+                componentUsages: {
+                    excelUpload: {
+                        name: namespace
+                    }
+                }
+            }
+        });
+
     }
 
     end() {
-        this.spawnCommandSync('npm', ['install'], {
-            cwd: this.destinationPath()
-        });
+        if (this.options.oneTimeConfig.deploymentType === "inAppDeployment") {
+            this.spawnCommandSync("npm", ["install"], {
+                cwd: this.destinationPath()
+            });
+        }
     }
 };

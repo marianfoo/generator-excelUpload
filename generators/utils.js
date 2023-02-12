@@ -1,3 +1,5 @@
+const axios = require('axios');
+
 function validateAlhpaNumericStartingWithLetter(sInput) {
     if (/^\d*[a-z][a-z0-9]*$/gi.test(sInput)) {
         return true;
@@ -53,10 +55,21 @@ function getUniqueEntitySetValues(json,template) {
   return [...new Set(entities)];
 }
 
+async function getLatestVersion() {
+    try {
+      const response = await axios.get('https://registry.npmjs.org/ui5-cc-excelupload');
+      const latestVersion = response.data['dist-tags'].latest;
+      return latestVersion;
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
 module.exports = {
     validateAlhpaNumericStartingWithLetter,
     validatHttpUrl,
     isArrayWithMoreThanOneElement,
     findEntitySetValue,
-    getUniqueEntitySetValues
+    getUniqueEntitySetValues,
+    getLatestVersion
 };

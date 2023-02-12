@@ -33,7 +33,7 @@ exports.writeJSON = async function (filePath, override) {
                 ? override(oldContent)
                 : objectAssignDeep.withOptions(oldContent, [override], { arrayBehaviour: "merge" });
 
-        this.fs.writeFile(fullFilePath, JSON.stringify(newContent));
+        this.fs.writeFile(fullFilePath, JSON.stringify(newContent, null, 2));
         if (!this.options.isSubgeneratorCall && this.config.get("setupCompleted")) {
             this.log(`Updated file: ${filePath}`);
         }
@@ -57,7 +57,7 @@ exports.writeYAML = async function (filePath, override) {
                 ? override(oldContent)
                 : objectAssignDeep.withOptions(oldContent, [override], { arrayBehaviour: "merge" });
 
-        this.fs.write(fullFilePath, yaml.stringify(newContent));
+        this.fs.write(fullFilePath, yaml.stringify(newContent, null, 2));
 
         if (!this.options.isSubgeneratorCall && this.config.get("setupCompleted")) {
             this.log(`Updated file: ${filePath}`);
@@ -100,7 +100,7 @@ exports.manipulateYAML = async function (filePath, override) {
                 ? override(oldContent)
                 : objectAssignDeep.withOptions(oldContent, [override], { arrayBehaviour: "merge" });
 
-        this.fs.write(fullFilePath, yaml.stringify(newContent));
+        this.fs.write(fullFilePath, yaml.stringify(newContent, null, 2));
 
         !this.options.isSubgeneratorCall && this.log(`Updated file: ${filePath}`);
     } catch (e) {
