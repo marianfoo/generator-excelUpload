@@ -17,8 +17,8 @@ module.exports = class extends Generator {
             name: "deploymentType",
             message: "What kind of Deployment to you use?",
             choices: [
-                { name: "Central Deployment", value: "centralDeployment" },
-                { name: "In-App Deployment", value: "inAppDeployment" }
+                { name: "In-App Deployment", value: "inAppDeployment" },
+                { name: "Central Deployment", value: "centralDeployment" }
             ]
         });
         const questionTemplate = await this.prompt({
@@ -59,6 +59,7 @@ module.exports = class extends Generator {
             this.options.oneTimeConfig.buttonText = answers.buttonText;
             this.options.oneTimeConfig.target = manifestTargets.id;
             this.options.oneTimeConfig.deploymentType = deploymentQuestion.deploymentType;
+            this.options.oneTimeConfig.namespace = manifesJson["sap.app"].id;
         });
     }
 
@@ -72,6 +73,8 @@ module.exports = class extends Generator {
         const sLazy = this.options.oneTimeConfig.lazy;
         const sModuleName = this.options.oneTimeConfig.modulename;
         const deploymentType = this.options.oneTimeConfig.deploymentType;
+        const namespaceUI5 = this.options.oneTimeConfig.namespace
+        const namespaceUI5ObjectPage = `${namespaceUI5}.ext.ObjectPageExtController.openExcelUploadDialog`
         
 
         this.sourceRoot(path.join(__dirname, "templates"));
@@ -135,7 +138,7 @@ module.exports = class extends Generator {
             await fileaccess.manipulateJSON.call(this, "/webapp/manifest.json", {
                 "sap.ui5": {
                     resourceRoots: {
-                        namespace: "./thirdparty/customControl/excelUpload/v" + npmLatestVersionSlash
+                        [namespace]: "./thirdparty/customControl/excelUpload/v" + npmLatestVersionSlash
                     }
                 }
             });
