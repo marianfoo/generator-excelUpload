@@ -102,7 +102,7 @@ module.exports = class extends Generator {
                                                     id: "excelUploadButton",
                                                     text: buttonText,
                                                     enabled: "{ui>/isEditable}",
-                                                    press: "ui5.cc.v4.samplev4excelupload.ext.ObjectPageExtController.openExcelUploadDialog",
+                                                    press: namespaceUI5ObjectPage,
                                                     requiresSelection: false
                                                 }
                                             }
